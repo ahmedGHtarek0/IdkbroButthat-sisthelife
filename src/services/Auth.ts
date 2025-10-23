@@ -1,4 +1,4 @@
-import { client } from "..";
+import { client, prisma } from "..";
 import { User } from "../mongodb/user";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
@@ -20,8 +20,14 @@ const generateOTP = (): string => {
   return otp;
 };
 const sendemail= async({email}:user)=>{
+  if(!email){
+    return {data:'email is required',status:400}
+    }
     const checktheuser= await User.findOne({email});
-    if(checktheuser){
+    const checktheusersql= await prisma.user.findUnique({
+      where:{email}
+    });
+    if (checktheuser || checktheusersql) {
         return {data:'user already exists',status:400}
     }
      try {
@@ -54,11 +60,22 @@ return {data:'check ur email',status:200}
 }
 const savetheuser= async({name,email,password}:user,otp:string)=>{
   try{
+    if(!otp|| !name||!email||!password  ){
+      return {data:'all fields are required',refreshtoken:'there is no data1',status:400}
+    }
   const checktheotp= await client.get(otp)
   if(!checktheotp){
     return {data:'invalid otp or expired',refreshtoken:'there is now data2',status:400}
   }
-  const newuser= await User.create({name,email,password,role:'user'})
+  const hased = await bcrypt.hash(password,10);
+  const newuser= await User.create({name,email,password:hased,role:'USER'})
+  const newusers=await prisma.user.create({
+    data:{
+      name,
+      email,
+      password:hased
+    }
+  })
   const accesstoken= makeaccesstokenForUser({email})
   const refreshtoken= makerefreshtokenforUser({email})
   await client.del(otp)
@@ -72,18 +89,30 @@ const savetheuser= async({name,email,password}:user,otp:string)=>{
 
 const saveAdmin= async({name,email,password}:user,otp:string)=>{
   try{
+     if(!otp|| !name||!email||!password  ){
+      return {data:'all fields are required',refreshtoken:'there is no data1',status:400}
+    }
   const checktheotp= await client.get(otp)
   if(!checktheotp){
     return {data:'invalid otp or expired',refreshtoken:'no data2 here ',status:400}
   }
-  const newuser= await User.create({name,email,password,role:'admin'})
+  const hased = await bcrypt.hash(password,10);
+  const newuser= await User.create({name,email,password:hased,role:'ADMIN'})
+  const newusers=await prisma.user.create({
+    data:{
+      name,
+      email,
+      password:hased,
+      role:'ADMIN'
+    }
+  })
   const accesstoken= makeaccesstokenForAdmin({email})
   const refreshtoken= makerefreshtokenforAdmin({email})
   await client.del(otp)
   await client.set(refreshtoken,refreshtoken,{EX:7*24*60*60})
   return {data:accesstoken,refreshtoken,status:201}
 }catch(err){
-  return {data:'internal server error',refreshtoken:'error in  code here',status:500}
+  return {data:err,refreshtoken:'error in  code here',status:500}
 
 }
 }
@@ -105,18 +134,25 @@ const makerefreshtokenforAdmin=(data:any)=>{
 }
 const loginfunction= async({email,password}:user)=>{
   try{
+    if(!email){
+      return {data:'email is required',status:400}
+    } 
   const checktheuser= await User.findOne({email})
-  if(!checktheuser){
-    return {data:'user not found',status:404}
+  const checktheusersql= await prisma.user.findUnique({
+    where:{email}
+  });
+  if(!checktheuser || !checktheusersql){
+    return {data:'user not found',refreshtoken:'invalid passowrd',status:404}
   } 
   if(!password){
-    return {data:'password is required',status:400}
+    return {data:'password is required',refreshtoken:"inavlid passord",status:400}
   }
   const passwordMatch= await bcrypt.compare(password,checktheuser.password);
-  if(!passwordMatch){
-    return {data:'invalid password',status:400}
+  const passwordMatchsql= await bcrypt.compare(password,checktheusersql.password);
+  if(!passwordMatch || !passwordMatchsql){
+    return {data:'invalid password',refreshtoken:'invalid password',status:400}
   } 
-  if(checktheuser.role==='user' ){
+  if(checktheuser.role==='USER' ){
     const accesstoken= makeaccesstokenForUser({email})
     const refreshtoken= makerefreshtokenforUser({email})
     await client.set(refreshtoken,refreshtoken,{EX:7*24*60*60})

@@ -3,7 +3,7 @@ import { User, uservalidationSchema } from '../mongodb/user';
 import { loginfunction, saveAdmin, savetheuser, sendemail } from '../services/Auth';
 import { reqUser ,usermiddleware} from '../middleware/usermiddleware';
 import  jwt  from 'jsonwebtoken';
-import { client } from '..';
+import { client, prisma } from '..';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -114,10 +114,22 @@ router.post('/resetpassword',async(req,res)=>{
     const {email,password}=Data.data as any;
     const hased= await bcrypt.hash(password,10);
     const addnewpassword= await User.findOneAndUpdate({email},{$set:{password:hased}},{new:true});
-    if(!addnewpassword){
+    const addnewpasswordsql= await prisma.user.updateMany({
+      where:{email},
+      data:{password:hased}
+    })
+    if(!addnewpassword || addnewpasswordsql.count===0){
         return res.status(400).json({error:'user not found'})
     }
     res.status(200).json({message:'password reset successful'})
 })
-
+router.post('/otpforresetpassowrd',async(req,res)=>{
+ const getotp= await client.get(req.body.otp)
+  if(!getotp){
+    return res.status(400).json({error:'invalid otp or expired'})
+  }
+  else {
+    return res.status(200).json({message:'otp is valid'})
+  }
+})
  export default router; 

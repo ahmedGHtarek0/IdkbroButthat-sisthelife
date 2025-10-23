@@ -6,7 +6,7 @@ interface IUser extends Document{
     name: string;
     email: string;
     password: string;
-    role:'admin'|'user'
+    role:'ADMIN'|'USER'
     phone: string;
 }
 const UserSchema: Schema = new Schema({
@@ -14,7 +14,7 @@ const UserSchema: Schema = new Schema({
     email: {type: String, required: true, unique: true},    // the n+1 problem 
     password: {type: String, required: true},
     phone: {type: String, required: false,default:''},
-    role: {type: String, enum: ['admin', 'user'], default: 'user',required:true}
+    role: {type: String, enum: ['USER', 'ADMIN'], default: 'USER',required:true}
 });
 const User = mongoose.model<IUser>('User', UserSchema);//  best pratcice to validate data before sending to database
 const uservalidationSchema = zod.object({

@@ -1,48 +1,73 @@
-import mongoose  from 'mongoose';
- import express from 'express'
-import Auth from './routes/Auth';
+import express from 'express';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import {createClient} from 'redis'
+import { PrismaClient } from '@prisma/client';
+import { createClient } from 'redis';
 import cookieParser from "cookie-parser";
-
+import Auth from './routes/Auth';
 
 dotenv.config();
- const app= express()
-    const port = process.env.PORT
-    const mongoUrl= process.env.Data_Base_Url ?? 'typescript Error'
-mongoose.connect(mongoUrl).
-then(() => console.log('anythingatall done')).
-catch((i) => console.log('errr', i));
 
+const app = express();
+export const prisma = new PrismaClient();
+const port = process.env.PORT || 5000;
+const mongoUrl = process.env.Data_Base_Url ?? 'typescript Error';
 
+// ✅ CONNECT PRISMA FIRST
+(async () => {
+  try {
+    await prisma.$connect();
+    console.log("✅ Prisma connected successfully");
+  } catch (error) {
+    console.error("❌ Failed to connect Prisma:", error);
+  }
+})();
 
+// ✅ CONNECT MONGODB
+mongoose
+  .connect(mongoUrl)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.log("❌ MongoDB error:", err));
+
+// ✅ CONNECT REDIS
 export const client = createClient({
-    username: 'default',
-    password: 'dgrUmo5n66pYXv1wiOHvStQuq7wCtFyS',
-    socket: {
-        host: 'redis-18355.c61.us-east-1-3.ec2.redns.redis-cloud.com',
-        port: 18355
-    }
+  username: 'default',
+  password: process.env.passwordredis || '',
+  socket: {
+    host: process.env.Redis || '',
+    port: 18355
+  }
 });
 
 (async () => {
-  try {;
-
+  try {
     client.on("error", (err) => console.log("❌ Redis Client Error:", err));
-
     await client.connect();
-    console.log("✅ Redis is connected successfully");
-
+    console.log("✅ Redis connected successfully");
   } catch (error) {
-    console.error("❌ Failed to connect to Redis:", error);
+    console.error("❌ Failed to connect Redis:", error);
   }
 })();
-/*  the all middleware  */
+
+// ✅ MIDDLEWARE
 app.use(cookieParser());
-app.use(express.json())
-/* the main routes*/
-app.use('/auth',Auth)
-app.listen(port, ()=>{
-     console.log(`Server is running on http://localhost:${port}`);
- }  )
- /* */
+app.use(express.json());
+
+// ✅ ROUTES
+app.use('/auth', Auth);
+
+app.post('/', async (req, res) => {
+  const addinsql = await prisma.user.create({
+    data: {
+      name: 'ahmed tarek',
+      email: 'any@gmail.com',
+      password: 'any'
+    }
+  });
+  res.json(addinsql);
+});
+
+// ✅ START SERVER
+app.listen(port, () => {
+  console.log(`🚀 Server running at http://localhost:${port}`);
+});
