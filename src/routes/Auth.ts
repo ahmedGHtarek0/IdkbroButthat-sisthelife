@@ -6,6 +6,8 @@ import  jwt  from 'jsonwebtoken';
 import { client, prisma } from '..';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+import {OAuth2Client } from 'google-auth-library'
+import { Request, Response } from 'express';
 dotenv.config();
 const router= express.Router();
 router.post('/signupUsersAndResetPassword',async(req,res)=>{
@@ -132,4 +134,86 @@ router.post('/otpforresetpassowrd',async(req,res)=>{
     return res.status(200).json({message:'otp is valid'})
   }
 })
+
+
+const Client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+
+
+
+router.get("/google", async (req: Request, res: Response) => {
+  try {
+    const { code } = req.query;
+
+    // 1️⃣ لو مفيش code → نوجّه المستخدم لـ Google login
+    if (!code) {
+      const authUrl = Client.generateAuthUrl({
+        access_type: "offline",
+        scope: [
+          "https://www.googleapis.com/auth/userinfo.profile",
+          "https://www.googleapis.com/auth/userinfo.email"
+        ],
+        prompt: "consent"
+      });
+      return res.redirect(authUrl);
+    }
+
+    console.log("🔹 Code received, exchanging for tokens...");
+    const { tokens } = await Client.getToken(code as string);
+    if (!tokens.id_token) throw new Error("No ID token received");
+
+    // 2️⃣ التحقق من ID token
+    const ticket = await Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID || ""
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) throw new Error("No user data received");
+
+    console.log("🔹 Payload received:", payload);
+
+    // 3️⃣ البحث عن المستخدم أو إنشاء جديد
+    let user = await User.findOne({ email: payload.email });
+    if (!user) {
+      user = new User({ email: payload.email, name: payload.name ,password:"googleuser"});
+      await user.save();
+    }
+
+    let userInSQL = await prisma.user.findUnique({ where: { email: payload.email! } });
+    if (!userInSQL) {
+      await prisma.user.create({
+        data: { email: payload.email!, name: payload.name!, password: "googleuser" }
+      });
+    }
+
+    // 4️⃣ إنشاء access & refresh tokens
+    const accessToken = jwt.sign({ email: payload.email }, process.env.USER!, { expiresIn: "1h" });
+    const refreshToken = jwt.sign({ email: payload.email }, process.env.USER!, { expiresIn: "7d" });
+
+    // 5️⃣ حفظ الـ refresh token في كوكيز
+    res.cookie("refresh_token", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    // 6️⃣ الرد للـ client
+    res.json({
+      success: true,
+      token: accessToken,
+      user: { email: payload.email, name: payload.name }
+    });
+
+  } catch (error) {
+    console.error("💥 Error in Google Auth:", error);
+    res.status(500).json({ success: false, error: "Authentication failed" });
+  }
+});
+
+
+
  export default router; 

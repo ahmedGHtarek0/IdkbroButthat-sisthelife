@@ -52,7 +52,8 @@ export const client = createClient({
 // ✅ MIDDLEWARE
 app.use(cookieParser());
 app.use(express.json());
-
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 // ✅ ROUTES
 app.use('/auth', Auth);
 
