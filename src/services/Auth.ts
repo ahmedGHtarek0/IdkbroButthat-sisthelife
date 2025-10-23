@@ -3,6 +3,7 @@ import { User } from "../mongodb/user";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 dotenv.config();
 interface user{
     name?: string
@@ -108,7 +109,11 @@ const loginfunction= async({email,password}:user)=>{
   if(!checktheuser){
     return {data:'user not found',status:404}
   } 
-  if(checktheuser.password!==password){
+  if(!password){
+    return {data:'password is required',status:400}
+  }
+  const passwordMatch= await bcrypt.compare(password,checktheuser.password);
+  if(!passwordMatch){
     return {data:'invalid password',status:400}
   } 
   if(checktheuser.role==='user' ){

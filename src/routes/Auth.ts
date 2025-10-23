@@ -4,10 +4,11 @@ import { loginfunction, saveAdmin, savetheuser, sendemail } from '../services/Au
 import { reqUser ,usermiddleware} from '../middleware/usermiddleware';
 import  jwt  from 'jsonwebtoken';
 import { client } from '..';
+import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 dotenv.config();
 const router= express.Router();
-router.post('/signupUsers',async(req,res)=>{
+router.post('/signupUsersAndResetPassword',async(req,res)=>{
    const Data=uservalidationSchema.safeParse(req.body);
     if(!Data.success){
         return res.status(400).json({error:' the data u send is wrong plz try again '});
@@ -105,6 +106,18 @@ router.get('/refreshtoken', async (req: reqUser, res) => {
   }
 });
 
-
+router.post('/resetpassword',async(req,res)=>{
+  const Data= uservalidationSchema.safeParse(req.body);
+    if(!Data.success){
+        return res.status(400).json({error:' the data u send is wrong plz try again '});
+    }
+    const {email,password}=Data.data as any;
+    const hased= await bcrypt.hash(password,10);
+    const addnewpassword= await User.findOneAndUpdate({email},{$set:{password:hased}},{new:true});
+    if(!addnewpassword){
+        return res.status(400).json({error:'user not found'})
+    }
+    res.status(200).json({message:'password reset successful'})
+})
 
  export default router; 
