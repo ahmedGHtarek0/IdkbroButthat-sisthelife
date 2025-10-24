@@ -134,39 +134,54 @@ const makerefreshtokenforAdmin=(data:any)=>{
 }
 const loginfunction= async({email,password}:user)=>{
   try{
-    if(!email){
-      return {data:'email is required',status:400}
+    if(!email || !password){
+      return {data:'email  and pssowrd is required',refreshtoken:'no refreshtoken here',status:400}
     } 
   const checktheuser= await User.findOne({email})
-  const checktheusersql= await prisma.user.findUnique({
-    where:{email}
-  });
-  if(!checktheuser || !checktheusersql){
-    return {data:'user not found',refreshtoken:'invalid passowrd',status:404}
-  } 
-  if(!password){
-    return {data:'password is required',refreshtoken:"inavlid passord",status:400}
-  }
-  const passwordMatch= await bcrypt.compare(password,checktheuser.password);
-  const passwordMatchsql= await bcrypt.compare(password,checktheusersql.password);
-  if(!passwordMatch || !passwordMatchsql){
-    return {data:'invalid password',refreshtoken:'invalid password',status:400}
-  } 
-  if(checktheuser.role==='USER' ){
-    const accesstoken= makeaccesstokenForUser({email})
+  if(checktheuser){
+     const passwordMatch= await bcrypt.compare(password,checktheuser.password);
+     if(passwordMatch){
+      if(checktheuser.role==='USER'){
+ const accesstoken= makeaccesstokenForUser({email})
     const refreshtoken= makerefreshtokenforUser({email})
     await client.set(refreshtoken,refreshtoken,{EX:7*24*60*60})
     return {data:accesstoken,refreshtoken,status:200}
-  }
-  else{
-    const accesstoken= makeaccesstokenForAdmin({email})
+      }
+      else{
+ const accesstoken= makeaccesstokenForAdmin({email})
     const refreshtoken= makerefreshtokenforAdmin({email})
     await client.set(refreshtoken,refreshtoken,{EX:7*24*60*60})
     return {data:accesstoken,refreshtoken,status:200}
+      }
+     }
+    }
+  
+  const checktheusersql= await prisma.user.findUnique({
+    where:{email}
+  });  
+  if(checktheusersql){
+    const passwordMatch= await bcrypt.compare(password,checktheusersql.password);
+     if(passwordMatch){
+      if(checktheusersql.role==='USER'){
+ const accesstoken= makeaccesstokenForUser({email})
+    const refreshtoken= makerefreshtokenforUser({email})
+    await client.set(refreshtoken,refreshtoken,{EX:7*24*60*60})
+    return {data:accesstoken,refreshtoken,status:200}
+      }
+      else{
+ const accesstoken= makeaccesstokenForAdmin({email})
+    const refreshtoken= makerefreshtokenforAdmin({email})
+    await client.set(refreshtoken,refreshtoken,{EX:7*24*60*60})
+    return {data:accesstoken,refreshtoken,status:200}
+      }
+     }
   }
-}catch(err){
-  return {data:'internal server error',refreshtoken:'error here ',status:500}
+  }catch(err){
+    return {data:'err in login ',refreshtoken:'no refreshtoken here ' ,status:401}
+  }
+  return {data:'login err',refreshtoken:'login err',status:401}
+
 }
-}
+
 
 export {sendemail,savetheuser,loginfunction,saveAdmin};

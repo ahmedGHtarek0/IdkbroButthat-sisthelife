@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { createClient } from 'redis';
 import cookieParser from "cookie-parser";
 import Auth from './routes/Auth';
+import cruduser from './routes/cruduser';
 
 dotenv.config();
 
@@ -56,18 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // ✅ ROUTES
 app.use('/auth', Auth);
-
-app.post('/', async (req, res) => {
-  const addinsql = await prisma.user.create({
-    data: {
-      name: 'ahmed tarek',
-      email: 'any@gmail.com',
-      password: 'any'
-    }
-  });
-  res.json(addinsql);
-});
-
+app.use('/image',cruduser)
 // ✅ START SERVER
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
