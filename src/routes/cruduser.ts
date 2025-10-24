@@ -52,5 +52,5 @@ router.delete("/", usermiddleware, async (req: reqUser, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-
+/* we will  make the prisma code later inshaaalah*/
 export default router;
