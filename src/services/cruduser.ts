@@ -148,4 +148,5 @@ const deletephotos=async({num,userId,userid}:deletepic)=>{
 
     }
 }
+/* we will make the crud opreation of post tommowrrow*/
 export {addorupdatesmallphoto,addBigPic,deletephotos};
