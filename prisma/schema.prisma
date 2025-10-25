@@ -17,12 +17,22 @@ enum Role {
   USER
 }
 
-model User{
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String   
+model User {
+  id        String  @id @default(uuid())
+  email     String  @unique
+  name      String
   phone     String?
   password  String
   role      Role     @default(USER)
+  image     Image?   // علاقة One-to-One
   @@index([name])
+}
+
+model Image {
+  id            String   @id @default(uuid())
+  SmallimageUrl String   @default("")
+  BigimageUrl   String   @default("")
+  createdAt     DateTime @default(now())
+  userId        String   @unique    // لازم Unique عشان تكون One-to-One
+  user          User     @relation(fields: [userId], references: [id])
 }

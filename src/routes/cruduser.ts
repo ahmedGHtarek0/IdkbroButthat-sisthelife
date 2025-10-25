@@ -9,28 +9,31 @@ const router = Router();
 router.post("/small", usermiddleware, async (req: reqUser, res) => {
   try {
     const userId = req.user._id;
+    const userid= req.sql.id
+    console.log(req.sql.id,req.user._id)
     const Data = validateimageSchemasmall.safeParse(req.body);
     if (!Data.success) {
       return res.status(400).json({ message: "Invalid small image data" });
     }
     const { SmallimageUrl } = Data.data as any;
-    const result = await addorupdatesmallphoto({ userId, SmallimageUrl });
+    const result = await addorupdatesmallphoto({ userId,userid, SmallimageUrl });
     return res.status(result.status).json({ message: result.data });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: err });
   }
 });
 
 router.post("/big", usermiddleware, async (req: reqUser, res) => {
   try {
     const userId = req.user._id;
+    const userid= req.sql.id
     const Data = validateimageSchemaBig.safeParse(req.body); // استخدم schema صح
     if (!Data.success) {
       return res.status(400).json({ message: "Invalid big image data" });
     }
     const { BigimageUrl } = Data.data as any;
-    const result = await addBigPic({ userId, BigimageUrl });
+    const result = await addBigPic({ userId, userid,BigimageUrl });
     return res.status(result.status).json({ message: result.data });
   } catch (err) {
     console.error(err);
@@ -45,7 +48,8 @@ router.delete("/", usermiddleware, async (req: reqUser, res) => {
       return res.status(400).json({ message: "num must be 0 or 1" });
     }
     const userId = req.user._id;
-    const result = await deletephotos({ userId, num });
+    const userid= req.sql.id
+    const result = await deletephotos({ userId,userid, num });
     return res.status(result.status).json({ message: result.data });
   } catch (err) {
     console.error(err);
