@@ -118,7 +118,7 @@ const saveAdmin= async({name,email,password}:user,otp:string)=>{
 }
 const makeaccesstokenForUser=(data:any)=>{
 
-  return jwt.sign(data, process.env.user!,{expiresIn:'1h'})
+  return jwt.sign(data, process.env.user!,{expiresIn:'7d'})
 }
 const makerefreshtokenforUser=(data:any)=>{
 
@@ -126,7 +126,7 @@ const makerefreshtokenforUser=(data:any)=>{
 }
 const makeaccesstokenForAdmin=(data:any)=>{
 
-  return jwt.sign(data, process.env.Admin!,{expiresIn:'1h'})
+  return jwt.sign(data, process.env.Admin!,{expiresIn:'7d'})
 }
 const makerefreshtokenforAdmin=(data:any)=>{
 

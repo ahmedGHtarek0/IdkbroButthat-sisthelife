@@ -4,11 +4,18 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { createClient } from 'redis';
 import cookieParser from "cookie-parser";
+import { v2 as cloudinary } from 'cloudinary';
 import Auth from './routes/Auth';
 import cruduser from './routes/cruduser';
+import { Category } from './mongodb/catgory';
 
 dotenv.config();
-
+cloudinary.config({ 
+  cloud_name: process.env.CLOUD_NAME ??'',
+  api_key: process.env.CLOUD_API_KEY ??'',
+  api_secret: process.env.CLOUD_API_SECRET ?? '',
+});
+export default cloudinary
 const app = express();
 export const prisma = new PrismaClient();
 const port = process.env.PORT || 5000;
@@ -57,7 +64,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // ✅ ROUTES
 app.use('/auth', Auth);
-app.use('/image',cruduser)
+app.use('/user',cruduser)
 // ✅ START SERVER
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);

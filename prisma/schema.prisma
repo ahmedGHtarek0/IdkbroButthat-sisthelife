@@ -36,11 +36,12 @@ model Image {
 model Post {
   id           String       @id @default(uuid())
   author       String
-  pic          String
+  pic          String            @default("")
   discreption  String
-  like         Int          @default(0)
-  share        String
-  comments     Comments[]
+  photos       String[]     @default([])
+  like         String[]     @default([])
+  share        Int?         @default(0)
+  comments     Comments[]   
   category     Category[]
   userid       String
   user         User         @relation(fields: [userid], references: [id])
@@ -59,5 +60,6 @@ model Comments {
 model Category {
   id     String  @id @default(uuid())
   name   String  @unique
-  post   Post[]
+  post   Post[]  
 }
+

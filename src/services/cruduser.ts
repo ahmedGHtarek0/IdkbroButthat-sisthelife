@@ -1,9 +1,13 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { promises } from "nodemailer/lib/xoauth2";
 import { User } from "../mongodb/user";
 import { prisma } from "..";
 import { ProfileImage } from "../mongodb/profileimage";
 import { permission } from "node:process";
+import { Type } from "typescript";
+import { Category } from "../mongodb/catgory";
+import { Post } from "../mongodb/post";
+
 
 
 interface smallpic{
@@ -148,5 +152,97 @@ const deletephotos=async({num,userId,userid}:deletepic)=>{
 
     }
 }
+
+
+interface AddPostInput {
+  discreption: string;
+  category: string[];
+  photos: string[];
+  userId: Types.ObjectId; // MongoDB user id
+  sqlUserId: string; // Prisma user id (Postgres)
+}
+
+ const Addpost = async ({
+  discreption,
+  category,
+  photos,
+  userId,
+  sqlUserId,
+}: AddPostInput) => {
+  const mongoUser = await User.findById(userId);
+  if (!mongoUser) {
+    return { data: "User not found in MongoDB", status: 401 };
+  }
+
+  const mongoCategories = await Category.find({name:{$in:category}});
+  if (mongoCategories.length !== category.length) {
+    return { data: "One or more categories not found", status: 401 };
+  }
+
+  // ✅ 3. صورة المستخدم
+  const mongoProfile = await ProfileImage.findOne({ userId });
+
+  // ✅ 4. إنشاء البوست في MongoDB
+  const mongoPost = await Post.create({
+    author: mongoUser.name,
+    pic: mongoProfile?.SmallimageUrl,
+    discreption,
+    photos,
+    category: mongoCategories.map((c) => c._id),
+    userid:userId,
+  });
+
+  // ✅ 5. حدث كل Category بإضافة البوست الجديد
+  for (const cat of mongoCategories) {
+    await Category.findByIdAndUpdate(cat._id, {
+      $push: { posts: mongoPost._id },
+    });
+  }
+
+  // ✅ 6. تحقق من المستخدم في SQL
+  const sqlUser = await prisma.user.findUnique({
+    where: { id: sqlUserId },
+  });
+
+  if (!sqlUser) {
+    return { data: "User not found in SQL", status: 401 };
+  }
+
+  // ✅ 7. تحقق من الفئات في SQL
+  const sqlCategories = await prisma.category.findMany({
+    where: { name: { in: category } },
+  });
+
+  if (sqlCategories.length !== category.length) {
+    return { data: "One or more SQL categories not found", status: 401 };
+  }
+
+  // ✅ 8. تحقق من الصورة في SQL
+  const sqlImage = await prisma.image.findUnique({
+    where: { userId: sqlUserId },
+  });
+
+  // ✅ 9. أضف البوست إلى SQL
+  const sqlPost = await prisma.post.create({
+    data: {
+      author: mongoUser.name,
+      pic: sqlImage?.SmallimageUrl ?? "",
+      discreption:discreption,
+      photos,
+      userid: sqlUserId,
+      category: {
+        connect: sqlCategories.map((c) => ({ id: c.id })),
+      },
+    },
+  });
+
+  // ✅ 10. رجع البيانات
+  return { data: { mongoPost, sqlPost }, status: 201 };
+};
+
+/*
+npx prisma migrate dev --name make_share_optional
+npx prisma generate
+ */
 /* we will make the crud opreation of post tommowrrow*/
-export {addorupdatesmallphoto,addBigPic,deletephotos};
+export {addorupdatesmallphoto,addBigPic,deletephotos,Addpost};

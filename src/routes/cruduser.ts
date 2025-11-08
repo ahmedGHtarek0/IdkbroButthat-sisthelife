@@ -1,12 +1,16 @@
 import { Router } from "express";
-import { addorupdatesmallphoto, addBigPic, deletephotos } from "../services/cruduser";
+import { addorupdatesmallphoto, addBigPic, deletephotos, Addpost } from "../services/cruduser";
 import { reqUser, usermiddleware } from "../middleware/usermiddleware";
 import { validateimageSchemaBig, validateimageSchemasmall } from "../mongodb/profileimage";
+import { uploadSingleImage } from "../middleware/onephoto";
+import { uploadMultipleMedia } from "../middleware/vidandphoto";
+import { Post, postvalidtaor } from "../mongodb/post";
+import { console } from "node:inspector";
  
 
 const router = Router();
 
-router.post("/small", usermiddleware, async (req: reqUser, res) => {
+router.post("/small", usermiddleware, uploadSingleImage, async (req: reqUser, res) => {
   try {
     const userId = req.user._id;
     const userid= req.sql.id
@@ -24,7 +28,7 @@ router.post("/small", usermiddleware, async (req: reqUser, res) => {
   }
 });
 
-router.post("/big", usermiddleware, async (req: reqUser, res) => {
+router.post("/big", usermiddleware,uploadSingleImage, async (req: reqUser, res) => {
   try {
     const userId = req.user._id;
     const userid= req.sql.id
@@ -57,4 +61,44 @@ router.delete("/", usermiddleware, async (req: reqUser, res) => {
   }
 });
 /* we will  make the prisma code later inshaaalah*/
+/* now we will add the post crud routes broooo */
+
+router.post('/addpost',usermiddleware,uploadMultipleMedia.array('allthing',5),async(req:any,res)=>{
+ try{
+  console.log(req.body)
+ const photos = req.files.map((file: any) => file.path);
+  const userId= req.user._id
+  const sqlUserId= req.sql.id
+  const Data=postvalidtaor.safeParse(req.body)
+  if(!Data.success){
+    res.status(401).send('the data  has some thing error bro ')
+  }
+  const {discreption,category} = Data.data as any
+  const {data,status}= await Addpost({discreption,category,photos,userId,sqlUserId})
+  res.status(status).send(data)
+}catch(err){
+  res.send(err)
+}
+
+
+})
+router.post('/like',usermiddleware,async(req:reqUser,res)=>{
+  const userid= req.user._id
+  const searchabourpost=req.query.postid
+  const addorremove = Number(req.query.num)
+  if(!searchabourpost ||( addorremove!=0 && addorremove !=1)){
+    res.status(401).send(" we can't add like or delete it")
+  }
+  if(addorremove===1){
+    const addlike= await Post.findOneAndUpdate({_id:searchabourpost},{$addToSet:{like:userid}})
+    await addlike?.save()
+    res.status(201).send('the like was added')
+  }
+  else{
+    const addlike= await Post.findOneAndUpdate({_id:searchabourpost},{$pull:{like:userid}})
+    await addlike?.save()
+    res.status(201).send('the like was deleted')
+  }
+})
+
 export default router;
