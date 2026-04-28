@@ -1,6 +1,6 @@
 # 🛠️ Advanced Documentation: Architecture & Implementation
 
-![Advanced Architecture](https://raw.githubusercontent.com/ahmedGHtarek0/IdkbroButthat-sisthelife/main/assets/advanced_banner.png)
+![Advanced Architecture](./assets/advanced_banner.svg)
 
 This document provides a technical deep-dive into the architectural decisions and advanced features implemented in the **IdkbroButthat-sisthelife** backend.
 

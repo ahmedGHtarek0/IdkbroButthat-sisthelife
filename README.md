@@ -1,6 +1,6 @@
 # 🚀 IdkbroButthat-sisthelife
 
-![Project Banner](https://raw.githubusercontent.com/ahmedGHtarek0/IdkbroButthat-sisthelife/main/assets/banner.png)
+![Project Banner](./assets/banner.svg)
 
 A professional-grade, high-performance Node.js backend system built with **TypeScript**, **Express**, and **Prisma**. This project serves as a robust foundation for modern web applications, featuring advanced authentication, cloud storage integration, and scalable architecture.
 
